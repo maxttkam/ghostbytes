@@ -1,9 +1,9 @@
 [project]
 name = "ghostbytes"
-version = "1.0.0"
+version = "1.0.1"
 description = "A desktop file encryption and data security utility."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 license = { file = "LICENSE" }
 authors = [
     { name = "maxttkam" }
