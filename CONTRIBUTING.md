@@ -31,8 +31,7 @@ uv run ghostbytes
 Before opening a pull request, run the relevant tests and static checks:
 
 ```bash
-uv run python tools/test.py
-uv run python tools/test.py --verbose
+uv run pytest -s
 uv run pylint src tools
 uv run deptry .
 ```
