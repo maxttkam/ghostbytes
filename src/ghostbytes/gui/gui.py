@@ -8,13 +8,11 @@ import textwrap
 import threading
 import webbrowser
 from tkinter import PhotoImage, filedialog
-from pathlib import Path
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 from ctkfontawesome import icon_to_ctkimage
 from PIL import Image
-
 from ghostbytes import __version__, __license__, __link__
 from ghostbytes.crypto.config import (
     AVAIL_ALG,
@@ -30,97 +28,27 @@ from ghostbytes.crypto.config import (
 )
 from ghostbytes.error import GeneralError, invalid_argument
 from ghostbytes.gui import wrappers as wr
-from ghostbytes.gui.theme import THEME
-
-# --------------------------------------------------------------------------- #
-# Design tokens
-#
-# `theme.py` supplies the base neutrals (backgrounds, borders, body text).
-# On top of that we spend a single, deliberate accent color — a cool
-# "vault teal" — consistently across every interactive/selected state,
-# rather than a different hue per feature. Secondary surfaces (results,
-# advanced settings) get a tinted panel so input vs. output is visually
-# obvious without boxing every single field in its own card.
-# --------------------------------------------------------------------------- #
-
-ACCENT = "#1FB6A6"
-ACCENT_HOVER = "#189485"
-ACCENT_ON = "#03211D"          # text color used on top of solid ACCENT fills
-ACCENT_TINT = "#11302C"        # accent-tinted panel background
-ACCENT_BORDER = "#20463F"      # accent-tinted panel border
-
-# GUI builders intentionally coordinate many widgets and callbacks in one
-# method; these limits do not identify actionable defects in this module.
-# pylint: disable=too-many-lines,too-many-locals,too-many-statements,too-many-branches,too-many-return-statements,too-many-arguments,too-many-positional-arguments,disallowed-name,protected-access,broad-exception-caught,unnecessary-lambda,line-too-long,multiple-statements
-
-DANGER = "#E5484D"
-WARNING = "#F2A93B"
-SUCCESS = "#3FC97F"
-
-MONO_FONT = "Consolas"
-
-SIDEBAR_LABELS = {
-    "ENCRYPTION": "Encryption",
-    "KEY MANAGEMENT": "Key management",
-    "CRYPTO TOOLS": "Crypto tools",
-    "SECURE STORAGE": "Secure storage",
-}
-
-TABS = {
-    "HEADER": [("house", "Home")],
-    "ENCRYPTION": [
-        ("lock", "Encrypt / Decrypt"),
-    ],
-    "KEY MANAGEMENT": [
-        ("key", "Generate Key Pair"),
-        ("key", "Verify Key Pair"),
-        ("key", "Key Information"),
-    ],
-    "CRYPTO TOOLS": [
-        ("hashtag", "Hash File(s) (Checksum)"),
-        ("dice", "Random"),
-        ("dice", "Password Generator"),
-        ("gauge-high", "Benchmark"),
-    ],
-    "SECURE STORAGE": [
-        ("trash", "Secure Delete"),
-        ("hard-drive", "Wipe Free Space"),
-    ],
-    "FOOTER": [("circle-info", "About")],
-}
-
-ACTIONS = [
-    ("lock", "Encrypt File", "Secure a single file with strong encryption", "Encrypt / Decrypt"),
-    ("lock-open", "Decrypt File", "Restore a file from its encrypted state", "Encrypt / Decrypt"),
-    ("key", "Generate Key Pair", "Create an RSA or ML-KEM key pair", "Generate Key Pair"),
-    ("circle-check", "Verify Key Pair", "Check if a key pair is matching", "Verify Key Pair"),
-    ("hashtag", "Hash File", "Calculate a file's cryptographic hash", "Hash File(s) (Checksum)"),
-    ("trash", "Secure Delete", "Permanently remove files, no traces left", "Secure Delete"),
-    ("broom", "Wipe Free Space", "Remove traces from unused disk space", "Wipe Free Space"),
-    ("dice", "Random", "Generate cryptographically random data", "Random"),
-    ("gauge-high", "Benchmark", "Measure your machine's crypto performance", "Benchmark"),
-]
-
-ABOUT_BOX_CONTENT = [
-    ("tag", "Version", __version__),
-    ("scale-balanced", "License", __license__),
-    ("github", "Source", __link__),
-]
-
-CAPABILITIES = [
-    "AES-256-GCM",
-    "Argon2id KDF",
-    "Hybrid RSA-OAEP",
-    "ML-KEM (PQC)",
-    "Multi-pass secure erase",
-]
-
-CARD_WIDTH = 240
-CARD_HEIGHT = 100
-IMG_DIR = Path(__file__).resolve().parent.parent / "img"
-ICON_PNG = IMG_DIR / "icon.png"
-ICON_ICO = IMG_DIR / "icon.ico"
-
+from ghostbytes.gui.theme import (
+    ABOUT_BOX_CONTENT,
+    ACCENT,
+    ACCENT_BORDER,
+    ACCENT_HOVER,
+    ACCENT_ON,
+    ACCENT_TINT,
+    ACTIONS,
+    CARD_HEIGHT,
+    CARD_WIDTH,
+    CAPABILITIES,
+    DANGER,
+    ICON_ICO,
+    ICON_PNG,
+    MONO_FONT,
+    SIDEBAR_LABELS,
+    SUCCESS,
+    TABS,
+    THEME,
+    WARNING,
+)
 
 def _set_windows_app_id():
     if os.name == "nt":
