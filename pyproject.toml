@@ -1,0 +1,74 @@
+[project]
+name = "ghostbytes"
+version = "1.0.0"
+description = "A desktop file encryption and data security utility."
+readme = "README.md"
+requires-python = ">=3.14"
+license = { file = "LICENSE" }
+authors = [
+    { name = "maxttkam" }
+]
+keywords = [
+    "encryption",
+    "cryptography",
+    "file encryption",
+    "privacy",
+    "security"
+]
+classifiers = [
+    "Environment :: X11 Applications",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Security :: Cryptography",
+    "Topic :: Utilities"
+]
+
+dependencies = [
+    "argon2-cffi>=25.1.0",
+    "cryptography>=50.0.1",
+    "ctkfontawesome>=0.8.0",
+    "ctkmessagebox>=2.7",
+    "customtkinter>=6.0.0",
+    "pathlib>=1.0.1",
+    "pillow>=12.3.0",
+    "psutil>=7.2.2",
+    "pycryptodome>=3.23.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/maxttkam/ghostbytes"
+Repository = "https://github.com/maxttkam/ghostbytes"
+Issues = "https://github.com/maxttkam/ghostbytes/issues"
+Changelog = "https://github.com/maxttkam/ghostbytes/blob/main/docs/change-log.md"
+
+[project.scripts]
+ghostbytes = "ghostbytes.__main__:main"
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "build>=1.6.1",
+    "colorama>=0.4.6",
+    "deptry>=0.25.1",
+    "pylint>=4.0.8",
+]
+
+[tool.pylint.main]
+ignore-paths = [
+    "^src/ghostbytes/.*",
+    ".*/__main__\\.py$",
+]
+disable = [
+    "R0902", "R0914", "R0912", "R0913", "R0917", # Complexity Warnings
+    "E0611", "E0401", # pycryptodome packages will raise error
+    "R0801", # Similar Lines
+    "C0415", # Third party import issue from crypto/config.pycryptodome
+    "W0718", # Too general exception catching   
+]
