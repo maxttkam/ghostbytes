@@ -5,6 +5,12 @@ It features symmetrical, asymmetrical (public / private key), and post-quantum c
 
 ![Screenshot on img/home.png](img/home.png)
 
+## Aim
+
+The goal of this project is to introduce everyday users and beginner developers to the fundamentals of **cryptography**, **data privacy**, **confidentiality in file sharing**. 
+
+In today's digital world, privacy isn't just for tech experts. it’s something everyone deserves. This repository aims to break down complex security concepts into simple, practical examples so anyone (even if you just learned your first lines of Python!) can understand how online privacy works and why it matters.
+
 ## Features
 
 Ghostbytes implemented a range of security features ranging from encryption, key management, hashing, to cryptographical randomness and secure deletion. Core features of the program is listed below:
