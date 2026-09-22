@@ -1386,25 +1386,43 @@ class App(ctk.CTk):
         row += 1
         ctk.CTkSegmentedButton(
             page,
-            values=["Sign", "Verify"],
+            values=[
+                "Sign",
+                "Verify"],
             variable=mode_var,
             fg_color=THEME["box_color"],
             selected_color=ACCENT,
             selected_hover_color=ACCENT_HOVER,
             unselected_color=THEME["box_color"],
             text_color=THEME["content_text"],
-            command=lambda _value: refresh()).grid(
-            row=row, column=0, columnspan=2, sticky="ew")
+            height=38,
+            font=self._font(
+                13,
+                "bold"),
+            command=lambda v: refresh()).grid(
+                row=row,
+                column=0,
+                columnspan=2,
+            sticky="ew")
         row += 1
 
-        self._field_label(page, row, "Algorithm")
-        row += 1
-        algorithm_var, _ = self._option(page, row, ["RSA", "ML-DSA"])
+        self._section(page, row, "Files")
         row += 1
         self._field_label(page, row, "File")
         row += 1
         file_entry = self._entry(page, row, "File to sign or verify")
         self._file_row(page, row, file_entry)
+        row += 1
+
+        self._section(page, row, "Protection")
+        row += 1
+        self._field_label(page, row, "Algorithm")
+        row += 1
+        algorithm_var, _ = self._option(
+            page,
+            row,
+            ["RSA", "ML-DSA"],
+            command=lambda _value: refresh())
         row += 1
         self._field_label(page, row, "Key file")
         row += 1
@@ -1415,18 +1433,75 @@ class App(ctk.CTk):
         row += 1
         pass_entry = self._entry(page, row, show="•")
         row += 1
+
+        self._section(page, row, "Output")
+        row += 1
         self._field_label(page, row, "Signature file")
         row += 1
         signature_entry = self._entry(page, row, "Detached signature file")
         signature_browse = self._file_row(page, row, signature_entry, save=True)
         row += 1
+
+        signing_advanced = ctk.CTkFrame(page, fg_color="transparent")
+        signing_advanced.grid(
+            row=row,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            pady=(8, 4))
+        signing_advanced.grid_columnconfigure(0, weight=1)
+        signing_advanced_inner = ctk.CTkFrame(
+            signing_advanced,
+            fg_color=ACCENT_TINT,
+            border_width=1,
+            border_color=ACCENT_BORDER,
+            corner_radius=THEME["corner_rad"])
+        signing_advanced_inner.grid_columnconfigure(0, weight=1)
+        signing_advanced_inner.grid_columnconfigure(1, weight=1)
+        signing_advanced_state = {"open": False}
+        signing_hash_var, _ = self._option_grid(
+            signing_advanced_inner,
+            0,
+            AVAIL_HASH_STR,
+            label="Hash function")
+
+        def toggle_signing_advanced():
+            signing_advanced_state["open"] = not signing_advanced_state["open"]
+            if signing_advanced_state["open"]:
+                signing_advanced_inner.grid(
+                    row=1, column=0, sticky="ew", pady=(8, 0))
+                signing_advanced_button.configure(
+                    text="▾  Advanced settings (RSA signature fields)")
+            else:
+                signing_advanced_inner.grid_forget()
+                signing_advanced_button.configure(
+                    text="▸  Advanced settings (RSA signature fields)")
+
+        signing_advanced_button = ctk.CTkButton(
+            signing_advanced,
+            text="▸  Advanced settings (RSA signature fields)",
+            anchor="w",
+            fg_color="transparent",
+            hover_color=THEME["box_color"],
+            text_color=ACCENT,
+            font=self._font(12, "bold"),
+            command=toggle_signing_advanced)
+        signing_advanced_button.grid(row=0, column=0, sticky="ew")
+        signing_advanced_inner.grid_remove()
+        row += 1
+
         btn, bar, status = self._run_row(page, row, "Sign", None)
 
         def refresh(*_):
             verifying = mode_var.get() == "Verify"
+            rsa_selected = algorithm_var.get() == "RSA"
             btn.configure(text="Verify" if verifying else "Sign")
             pass_entry.configure(state="disabled" if verifying else "normal")
             signature_browse.configure(state="normal")
+            if rsa_selected:
+                signing_advanced.grid()
+            else:
+                signing_advanced.grid_remove()
 
         def do_run():
             file_path = file_entry.get().strip()
@@ -1445,14 +1520,22 @@ class App(ctk.CTk):
                     key = file.read()
                 if mode_var.get() == "Sign":
                     signature = wr.sign_message(
-                        algorithm_var.get(), key, message, pass_entry.get() or None)
+                        algorithm_var.get(),
+                        key,
+                        message,
+                        pass_entry.get() or None,
+                        signing_hash_var.get())
                     with open(signature_path, "wb") as file:
                         file.write(signature)
                     return True
                 with open(signature_path, "rb") as file:
                     signature = file.read()
                 return wr.verify_signature(
-                    algorithm_var.get(), key, message, signature)
+                    algorithm_var.get(),
+                    key,
+                    message,
+                    signature,
+                    signing_hash_var.get())
 
             def on_success(result):
                 if mode_var.get() == "Sign":
@@ -2803,15 +2886,15 @@ class App(ctk.CTk):
             if state["open"]:
                 inner.grid(row=1, column=0, sticky="ew", pady=(8, 0))
                 btn.configure(
-                    text="▾  Advanced settings (all CryptoConfig fields)")
+                    text="▾  Advanced settings")
             else:
                 inner.grid_forget()
                 btn.configure(
-                    text="▸  Advanced settings (all CryptoConfig fields)")
+                    text="▸  Advanced settings")
 
         btn = ctk.CTkButton(
             wrap,
-            text="▸  Advanced settings (all CryptoConfig fields)",
+            text="▸  Advanced settings",
             anchor="w",
             fg_color="transparent",
             hover_color=THEME["box_color"],

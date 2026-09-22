@@ -38,10 +38,19 @@ To generate a ML-KEM or RSA key pair, navigate to `Generate Key Pair` and select
 
 Then, navigate to `Encrypt / Decrypt`, and select the target file to be encrypted, along with the `algorithm` and public key file (select private key file for decryption). Once the required inputs have been provided, execute the operation to complete the encryption or decryption process. Ensure that private keys are stored securely and are not shared with other users, as possession of the private key allows access to the protected data.
 
+## 5. Workflow Example 3: Digital Signatures
+
+To sign a file, open `Generate Key Pair` and select `RSA` or `ML-DSA`. For ML-DSA, choose `ML-DSA-44`, `ML-DSA-65`, or `ML-DSA-87` in the signature-key section. Save the private key securely and share only the public key.
+
+Open `Sign / Verify`, select `Sign`, choose the `RSA` or `ML-DSA` key family, then select the file, private key, and detached signature output path. Enter the private-key passphrase when required. The selected family must match the provided key; the key determines the concrete ML-DSA variant.
+
+To verify a signature, select `Verify`, choose the same key family, then provide the original file, matching public key, and detached signature file. Verification fails if the file, signature, or public key has changed.
+
 ## 6. Supporting Tools
 
 | Tool                        | Use it when you need to...                                                                         | First-use note                                                                                                                 |
 | --------------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Sign / Verify**           | Create or validate a detached RSA-PSS or ML-DSA signature.                                         | Use a private key to sign and the matching public key to verify; keep private keys confidential.                               |
 | **Hash File(s) (Checksum)** | Check whether a file or folder has changed, or compare a file with a checksum from another source. | Select the file or folder, choose a hash algorithm, and optionally save the result to a checksum file.                         |
 | **Random**                  | Generate random bytes for test data, salts, or other non-password output.                          | Choose a random source, set the output length, and save the generated data to a file.                                          |
 | **Password Generator**      | Create a strong random passphrase for password-based encryption.                                   | Generate the passphrase before starting encryption and store it securely; it cannot be recovered if lost.                      |

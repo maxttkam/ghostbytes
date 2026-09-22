@@ -4,9 +4,9 @@ This folder contains the project reference material for the desktop encryption a
 
 ## Documentation index
 
-- [Getting Started](getting-started.md) — first-run workflow, password-based example, key-based example, common problems, and next steps.
+- [Getting Started](getting-started.md) — first-run workflow, encryption, signing, key management, common problems, and next steps.
 - [Configuration](configuration.md) — full reference for `CryptoConfig`, supported algorithms, salts, KDF settings, hash selection, and import/export behavior.
-- [Cryptography](cryptography.md) — design overview of AES-GCM, RSA-OAEP, hybrid RSA, and ML-KEM encryption flows.
+- [Cryptography](cryptography.md) — design overview of AES-GCM, RSA-OAEP, hybrid RSA, ML-KEM encryption, RSA-PSS, and ML-DSA signatures.
 - [Architecture](architecture.md) — module boundaries, event flow, runtime structure, and extension points.
 
 ## Related project links

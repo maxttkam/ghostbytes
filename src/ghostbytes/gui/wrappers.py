@@ -317,7 +317,12 @@ def verify_keypair(public_key, private_key, passphrase=None):
     return verify_rsa_keypair(public_key, private_key, passphrase)
 
 
-def sign_message(algorithm, private_key, message, passphrase=None):
+def sign_message(
+    algorithm,
+    private_key,
+    message,
+    passphrase=None,
+    hash_func_str=AVAIL_HASH_STR[0]):
     """Sign a byte message with RSA-PSS or ML-DSA."""
     if not isinstance(message, bytes):
         raise invalid_argument("message", "must be bytes")
@@ -328,7 +333,9 @@ def sign_message(algorithm, private_key, message, passphrase=None):
         if key_type != "RSA":
             raise invalid_argument("key", "must be an RSA private key")
         key = _rsa.import_key(private_key, passphrase or None)
-        return _primitives.rsa_sign(CryptoConfig(), key, message)
+        config = CryptoConfig()
+        config.hash_func = _hash_function(hash_func_str)
+        return _primitives.rsa_sign(config, key, message)
     if algorithm == "ML-DSA":
         if key_type != "ML-DSA":
             raise invalid_argument("key", "must be an ML-DSA private key")
@@ -339,7 +346,12 @@ def sign_message(algorithm, private_key, message, passphrase=None):
     raise invalid_argument("algorithm", "is unsupported")
 
 
-def verify_signature(algorithm, public_key, message, signature):
+def verify_signature(
+    algorithm,
+    public_key,
+    message,
+    signature,
+    hash_func_str=AVAIL_HASH_STR[0]):
     """Verify a byte message signature with RSA-PSS or ML-DSA."""
     if not isinstance(message, bytes) or not isinstance(signature, bytes):
         raise invalid_argument("message and signature", "must be bytes")
@@ -348,12 +360,21 @@ def verify_signature(algorithm, public_key, message, signature):
         if key_type != "RSA":
             raise invalid_argument("key", "must be an RSA public key")
         key = _rsa.import_key(public_key)
-        return _primitives.rsa_verify(CryptoConfig(), key, message, signature)
+        config = CryptoConfig()
+        config.hash_func = _hash_function(hash_func_str)
+        return _primitives.rsa_verify(config, key, message, signature)
     if algorithm == "ML-DSA":
         if key_type != "ML-DSA":
             raise invalid_argument("key", "must be an ML-DSA public key")
         return _dilithium.verify(public_key, message, signature)
     raise invalid_argument("algorithm", "is unsupported")
+
+
+def _hash_function(name):
+    try:
+        return AVAIL_HASH[AVAIL_HASH_STR.index(name)]
+    except ValueError as error:
+        raise invalid_argument("hash_func", "is unsupported") from error
 
 
 def rsa_key_info(key_data, passphrase=None):
