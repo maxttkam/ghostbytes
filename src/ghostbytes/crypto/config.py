@@ -24,6 +24,7 @@ AVAIL_HASH_STR = [
     "blake2s",
     "md5"]
 AVAIL_ALG = ["aes", "rsa-oaep", "extended_oaep", "ML-KEM-768", "ML-KEM-1024"]
+AVAIL_SIGN_ALG = ["RSA-PSS", "ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]
 AVAIL_RANDOM_STR = [
     "os.urandom",
     "cryptodome_random",

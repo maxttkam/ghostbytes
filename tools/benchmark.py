@@ -6,7 +6,12 @@ import argparse
 
 from colorama import Fore, Style, init
 
-from ghostbytes.crypto.config import AVAIL_ALG, AVAIL_HASH_STR, AVAIL_RANDOM_STR
+from ghostbytes.crypto.config import (
+    AVAIL_ALG,
+    AVAIL_HASH_STR,
+    AVAIL_RANDOM_STR,
+    AVAIL_SIGN_ALG,
+)
 from ghostbytes.tools.benchmark import benchmark
 
 
@@ -48,6 +53,7 @@ def main() -> None:
     algorithms = (
         ("HASH ALGORITHMS", AVAIL_HASH_STR),
         ("CRYPTO ALGORITHMS", AVAIL_ALG),
+        ("SIGNING ALGORITHMS", AVAIL_SIGN_ALG),
         ("RANDOM ALGORITHMS", AVAIL_RANDOM_STR),
     )
 
@@ -62,7 +68,7 @@ def main() -> None:
                     args.rsa_keysize,
                 )
 
-                if algorithm in AVAIL_ALG:
+                if algorithm in AVAIL_ALG or algorithm in AVAIL_SIGN_ALG:
                     for benchmark_result in (*result[0], result[1]):
                         label, elapsed = benchmark_result
                         print(f"{Fore.YELLOW}{label:<24} {Fore.GREEN}{elapsed}")

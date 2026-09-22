@@ -16,11 +16,12 @@ The ``extended_oaep`` implementations / functions are located in oaep_extension.
 from Crypto.Cipher import AES as _aes
 from Crypto.Cipher import PKCS1_OAEP as _oaep
 from Crypto.PublicKey import RSA as _rsa
+from Crypto.Signature import pss as _pss
 
 from argon2.low_level import hash_secret_raw, Type
 
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import mlkem, rsa
+from cryptography.hazmat.primitives.asymmetric import mldsa, mlkem, rsa
 
 from ghostbytes.crypto.config import RSA_KEY_OUT_FORMAT, CryptoConfig
 from ghostbytes.error import aes_envelope_extraction_failed, data_integrity_check_failed, \
@@ -209,6 +210,31 @@ def rsa_oaep_decrypt(config, key, ciphertext):
         raise decryption_key_incorrect() from e
 
 
+def rsa_sign(config, key, message):
+    """Sign a message with RSA-PSS using the configured hash function."""
+    _require_config(config)
+    if not isinstance(message, bytes):
+        raise invalid_argument("RSA message", "must be bytes")
+    if not key.has_private():
+        raise keyfile_cannot_crypt("sign")
+    try:
+        return _pss.new(key).sign(config.hash_func.new(message))
+    except (ValueError, TypeError) as e:
+        raise invalid_argument("RSA signing key", "is invalid") from e
+
+
+def rsa_verify(config, key, message, signature):
+    """Verify an RSA-PSS signature and return whether it is valid."""
+    _require_config(config)
+    if not isinstance(message, bytes) or not isinstance(signature, bytes):
+        raise invalid_argument("RSA message and signature", "must be bytes")
+    try:
+        _pss.new(key).verify(config.hash_func.new(message), signature)
+    except (ValueError, TypeError):
+        return False
+    return True
+
+
 def derive_key(config, secret):
     """
     Derive a 256-bit key from a secret using Argon2id memory-hard
@@ -352,6 +378,15 @@ def keytype(key_bytes, passphrase=None):
          mlkem.MLKEM1024PrivateKey,
          mlkem.MLKEM1024PublicKey)):
         return "ML-KEM"
+    if isinstance(
+        key_obj,
+        (mldsa.MLDSA44PrivateKey,
+         mldsa.MLDSA44PublicKey,
+         mldsa.MLDSA65PrivateKey,
+         mldsa.MLDSA65PublicKey,
+         mldsa.MLDSA87PrivateKey,
+         mldsa.MLDSA87PublicKey)):
+        return "ML-DSA"
     raise unsupported_keyfile()
 
 

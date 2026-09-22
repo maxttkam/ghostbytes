@@ -17,6 +17,7 @@ import re
 from Crypto.PublicKey import RSA as _rsa
 
 from ghostbytes.crypto import crypto as _crypto
+from ghostbytes.crypto import dilithium as _dilithium
 from ghostbytes.crypto import kyber as _kyber
 from ghostbytes.crypto import primitives as _primitives
 from ghostbytes.crypto.config import (
@@ -295,13 +296,64 @@ def generate_mlkem_keypair(algorithm, out_format, passphrase=None):
         passphrase.encode("utf-8") if passphrase else None)
 
 
+def generate_mldsa_keypair(algorithm, out_format, passphrase=None):
+    return _dilithium.genkey(
+        algorithm,
+        out_format,
+        passphrase.encode("utf-8") if passphrase else None)
+
+
 def verify_keypair(public_key, private_key, passphrase=None):
     if _primitives.keytype(public_key) == "ML-KEM":
         return _kyber.verify_key(
             public_key,
             private_key,
             passphrase.encode("utf-8") if passphrase else None)
+    if _primitives.keytype(public_key) == "ML-DSA":
+        return _dilithium.verify_key(
+            public_key,
+            private_key,
+            passphrase.encode("utf-8") if passphrase else None)
     return verify_rsa_keypair(public_key, private_key, passphrase)
+
+
+def sign_message(algorithm, private_key, message, passphrase=None):
+    """Sign a byte message with RSA-PSS or ML-DSA."""
+    if not isinstance(message, bytes):
+        raise invalid_argument("message", "must be bytes")
+    key_type = _primitives.keytype(
+        private_key,
+        passphrase.encode("utf-8") if passphrase else None)
+    if algorithm == "RSA":
+        if key_type != "RSA":
+            raise invalid_argument("key", "must be an RSA private key")
+        key = _rsa.import_key(private_key, passphrase or None)
+        return _primitives.rsa_sign(CryptoConfig(), key, message)
+    if algorithm == "ML-DSA":
+        if key_type != "ML-DSA":
+            raise invalid_argument("key", "must be an ML-DSA private key")
+        return _dilithium.sign(
+            private_key,
+            message,
+            passphrase.encode("utf-8") if passphrase else None)
+    raise invalid_argument("algorithm", "is unsupported")
+
+
+def verify_signature(algorithm, public_key, message, signature):
+    """Verify a byte message signature with RSA-PSS or ML-DSA."""
+    if not isinstance(message, bytes) or not isinstance(signature, bytes):
+        raise invalid_argument("message and signature", "must be bytes")
+    key_type = _primitives.keytype(public_key)
+    if algorithm == "RSA":
+        if key_type != "RSA":
+            raise invalid_argument("key", "must be an RSA public key")
+        key = _rsa.import_key(public_key)
+        return _primitives.rsa_verify(CryptoConfig(), key, message, signature)
+    if algorithm == "ML-DSA":
+        if key_type != "ML-DSA":
+            raise invalid_argument("key", "must be an ML-DSA public key")
+        return _dilithium.verify(public_key, message, signature)
+    raise invalid_argument("algorithm", "is unsupported")
 
 
 def rsa_key_info(key_data, passphrase=None):
@@ -335,17 +387,18 @@ def key_info(key_data, passphrase=None):
     algorithm = type(key).__name__.replace(
         "PublicKey", "").replace(
         "PrivateKey", "")
+    key_family = "ML-DSA" if hasattr(key, "sign") or hasattr(key, "verify") else "ML-KEM"
     return {
-        "Key type": "ML-KEM",
+        "Key type": key_family,
         "Algorithm": algorithm,
         "Has private key": "Yes" if hasattr(
             key,
-            "decapsulate") else "No",
+            "decapsulate") or hasattr(key, "sign") else "No",
         "Key usability": "True" if hasattr(
             key,
             "encapsulate") or hasattr(
                 key,
-                "decapsulate") else "Unsupported key object",
+                "decapsulate") or hasattr(key, "sign") or hasattr(key, "verify") else "Unsupported key object",
     }
 
 

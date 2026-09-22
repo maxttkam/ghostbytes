@@ -19,6 +19,7 @@ from ghostbytes.crypto.config import (
     AVAIL_HASH,
     AVAIL_HASH_STR,
     AVAIL_RANDOM_STR,
+    AVAIL_SIGN_ALG,
     ENCRYPTED_SUFFIX,
     RSA_KEY_OUT_FORMAT,
     OVERWRITE_OPTIONS,
@@ -196,6 +197,7 @@ class App(ctk.CTk):
             "Generate Key Pair": self._build_genkey,
             "Verify Key Pair": self._build_verifykey,
             "Key Information": self._build_keyinfo,
+            "Sign / Verify": self._build_sign,
             "Hash File(s) (Checksum)": self._build_hashfile,
             "Random": self._build_random,
             "Password Generator": self._build_pwdgen,
@@ -969,7 +971,7 @@ class App(ctk.CTk):
         self._page_header(
             "key",
             "Generate Key Pair",
-            "Create an RSA or ML-KEM public/private key pair.")
+            "Create an RSA, ML-KEM, or ML-DSA public/private key pair.")
         page = self._page(row=1)
         row = 0
         self._section(page, row, "Key type")
@@ -979,6 +981,7 @@ class App(ctk.CTk):
             page,
             values=[
                 "ML-KEM",
+                "ML-DSA",
                 "RSA"],
             variable=key_type_var,
             fg_color=THEME["box_color"],
@@ -1039,6 +1042,29 @@ class App(ctk.CTk):
         self._field_label(mlkem_frame, 3, "Output format")
         mlkem_format_var, _ = self._option(mlkem_frame, 4, ["PEM", "DER"])
 
+        mldsa_frame = ctk.CTkFrame(page, fg_color="transparent")
+        mldsa_frame.grid_columnconfigure(0, weight=1)
+        self._section(mldsa_frame, 0, "Signature key")
+        self._field_label(mldsa_frame, 1, "ML-DSA parameter set")
+        mldsa_values = [
+            algorithm for algorithm in AVAIL_SIGN_ALG
+            if algorithm.startswith("ML-DSA-")]
+        mldsa_alg_var, _ = self._option(mldsa_frame, 2, mldsa_values)
+        ctk.CTkLabel(
+            mldsa_frame,
+            text="ML-DSA is the FIPS 204 post-quantum digital signature standard.",
+            text_color=THEME["gray_text"],
+            font=self._font(10),
+            anchor="w",
+            justify="left",
+            wraplength=560).grid(
+            row=3,
+            column=0,
+            sticky="w",
+            pady=(4, 0))
+        self._field_label(mldsa_frame, 4, "Output format")
+        mldsa_format_var, _ = self._option(mldsa_frame, 5, ["PEM", "DER"])
+
         rsa_frame.grid(row=row, column=0, columnspan=2, sticky="ew")
         row += 1
         self._field_label(
@@ -1085,10 +1111,16 @@ class App(ctk.CTk):
         def refresh_type():
             if key_type_var.get() == "RSA":
                 mlkem_frame.grid_forget()
+                mldsa_frame.grid_forget()
                 rsa_frame.grid(row=2, column=0, columnspan=2, sticky="ew")
-            else:
+            elif key_type_var.get() == "ML-KEM":
+                mldsa_frame.grid_forget()
                 rsa_frame.grid_forget()
                 mlkem_frame.grid(row=2, column=0, columnspan=2, sticky="ew")
+            else:
+                mlkem_frame.grid_forget()
+                rsa_frame.grid_forget()
+                mldsa_frame.grid(row=2, column=0, columnspan=2, sticky="ew")
 
         def refresh_rsa_size():
             if rsa_size_var.get() == "Custom…":
@@ -1121,9 +1153,12 @@ class App(ctk.CTk):
                 if key_type_var.get() == "RSA":
                     pub, priv = wr.generate_rsa_keypair(key_size, int(
                         exponent_entry.get()), pass_entry.get() or None, rsa_format_var.get())
-                else:
+                elif key_type_var.get() == "ML-KEM":
                     pub, priv = wr.generate_mlkem_keypair(
                         mlkem_alg_var.get(), mlkem_format_var.get(), pass_entry.get() or None)
+                else:
+                    pub, priv = wr.generate_mldsa_keypair(
+                        mldsa_alg_var.get(), mldsa_format_var.get(), pass_entry.get() or None)
                 os.makedirs(os.path.dirname(priv_path) or ".", exist_ok=True)
                 with open(pub_path, "wb") as file:
                     file.write(pub)
@@ -1338,6 +1373,101 @@ class App(ctk.CTk):
     # Hash files (single, multi-file, or whole folder), Random, Password
     # generator, Benchmark
     # ------------------------------------------------------------------ #
+
+    def _build_sign(self):
+        self._page_header(
+            "file-signature",
+            "Sign / Verify",
+            "Create or verify a detached signature for a file.")
+        page = self._page(row=1)
+        row = 0
+        mode_var = ctk.StringVar(value="Sign")
+        self._section(page, row, "Mode")
+        row += 1
+        ctk.CTkSegmentedButton(
+            page,
+            values=["Sign", "Verify"],
+            variable=mode_var,
+            fg_color=THEME["box_color"],
+            selected_color=ACCENT,
+            selected_hover_color=ACCENT_HOVER,
+            unselected_color=THEME["box_color"],
+            text_color=THEME["content_text"],
+            command=lambda _value: refresh()).grid(
+            row=row, column=0, columnspan=2, sticky="ew")
+        row += 1
+
+        self._field_label(page, row, "Algorithm")
+        row += 1
+        algorithm_var, _ = self._option(page, row, ["RSA", "ML-DSA"])
+        row += 1
+        self._field_label(page, row, "File")
+        row += 1
+        file_entry = self._entry(page, row, "File to sign or verify")
+        self._file_row(page, row, file_entry)
+        row += 1
+        self._field_label(page, row, "Key file")
+        row += 1
+        key_entry = self._entry(page, row, "Private key for signing, public key for verification")
+        self._file_row(page, row, key_entry)
+        row += 1
+        self._field_label(page, row, "Key passphrase (if any)")
+        row += 1
+        pass_entry = self._entry(page, row, show="•")
+        row += 1
+        self._field_label(page, row, "Signature file")
+        row += 1
+        signature_entry = self._entry(page, row, "Detached signature file")
+        signature_browse = self._file_row(page, row, signature_entry, save=True)
+        row += 1
+        btn, bar, status = self._run_row(page, row, "Sign", None)
+
+        def refresh(*_):
+            verifying = mode_var.get() == "Verify"
+            btn.configure(text="Verify" if verifying else "Sign")
+            pass_entry.configure(state="disabled" if verifying else "normal")
+            signature_browse.configure(state="normal")
+
+        def do_run():
+            file_path = file_entry.get().strip()
+            key_path = key_entry.get().strip()
+            signature_path = signature_entry.get().strip()
+            if not file_path or not key_path or not signature_path:
+                self._error_win(
+                    "Missing information",
+                    "Please choose the file, key, and signature file.")
+                return
+
+            def work():
+                with open(file_path, "rb") as file:
+                    message = file.read()
+                with open(key_path, "rb") as file:
+                    key = file.read()
+                if mode_var.get() == "Sign":
+                    signature = wr.sign_message(
+                        algorithm_var.get(), key, message, pass_entry.get() or None)
+                    with open(signature_path, "wb") as file:
+                        file.write(signature)
+                    return True
+                with open(signature_path, "rb") as file:
+                    signature = file.read()
+                return wr.verify_signature(
+                    algorithm_var.get(), key, message, signature)
+
+            def on_success(result):
+                if mode_var.get() == "Sign":
+                    status.configure(text=f"Signature saved to {signature_path}", text_color=SUCCESS)
+                else:
+                    status.configure(
+                        text="Signature is valid." if result else "Signature is invalid.",
+                        text_color=SUCCESS if result else DANGER)
+
+            self._run_async(
+                work, btn, bar, status, on_success=on_success,
+                start_msg="Signing…" if mode_var.get() == "Sign" else "Verifying…")
+
+        btn.configure(command=do_run)
+        refresh()
 
     def _build_hashfile(self):
         self._page_header(
@@ -1880,7 +2010,7 @@ class App(ctk.CTk):
                 return
 
             def launch():
-                algorithms = AVAIL_HASH_STR + AVAIL_ALG + AVAIL_RANDOM_STR
+                algorithms = AVAIL_HASH_STR + AVAIL_ALG + AVAIL_SIGN_ALG + AVAIL_RANDOM_STR
                 btn.configure(state="disabled")
                 bar.set(0)
                 results_box.configure(state="normal")
@@ -1918,6 +2048,8 @@ class App(ctk.CTk):
             box.insert("end", "========== HASH ALGORITHMS ==========\n")
         if alg in AVAIL_ALG and AVAIL_ALG.index(alg) == 0:
             box.insert("end", "\n========== CRYPTO ALGORITHMS ==========\n")
+        if alg in AVAIL_SIGN_ALG and AVAIL_SIGN_ALG.index(alg) == 0:
+            box.insert("end", "\n========== SIGNING ALGORITHMS ==========\n")
         if alg in AVAIL_RANDOM_STR and AVAIL_RANDOM_STR.index(alg) == 0:
             box.insert("end", "\n========== RANDOM ALGORITHMS ==========\n")
 
@@ -1931,7 +2063,7 @@ class App(ctk.CTk):
                 subsequent_indent=" " * 22,
                 break_long_words=False)
             box.insert("end", f"{alg:<22}{wrapped}\n")
-        elif alg in AVAIL_ALG:
+        elif alg in AVAIL_ALG or alg in AVAIL_SIGN_ALG:
             (enc, dec), keygen = result
             box.insert(
                 "end", f"{

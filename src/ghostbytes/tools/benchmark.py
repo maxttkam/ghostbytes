@@ -17,10 +17,14 @@ from os import name as _os_name
 from time import perf_counter_ns
 from random import randbytes
 
+from Crypto.Hash import SHA256
 from Crypto.PublicKey import RSA as _rsa
 from ghostbytes.crypto import primitives
 from ghostbytes.crypto.config import AVAIL_ALG, AVAIL_HASH, \
-    AVAIL_HASH_STR, AVAIL_RANDOM_STR, CryptoConfig
+    AVAIL_HASH_STR, AVAIL_RANDOM_STR, AVAIL_SIGN_ALG, CryptoConfig
+from ghostbytes.crypto.dilithium import genkey as mldsa_genkey
+from ghostbytes.crypto.dilithium import sign as mldsa_sign
+from ghostbytes.crypto.dilithium import verify as mldsa_verify
 from ghostbytes.crypto.kyber import genkey, kyber_decrypt, kyber_encrypt
 from ghostbytes.crypto.oaep_extension import oaep_extended_decrypt, oaep_extended_encrypt
 from ghostbytes.error import algorithm_not_supported, hash_not_supported
@@ -55,6 +59,12 @@ def benchmark(algorithm, length, rsa_keysize):
             _benchmark_crypto(algorithm, benchmark_data, rsa_keysize),
             _benchmark_keygen(algorithm, rsa_keysize)
         )
+    if algorithm in AVAIL_SIGN_ALG:
+        benchmark_data = randbytes(length)
+        return (
+            _benchmark_sign(algorithm, benchmark_data, rsa_keysize),
+            _benchmark_sign_keygen(algorithm, rsa_keysize)
+        )
     raise algorithm_not_supported()
 
 
@@ -73,7 +83,7 @@ def benchmark_all(length, rsa_keysize):
         List of tuples. ``(algorithm_name, algorithm_time_or_error)``
     """
 
-    all_algorithms = AVAIL_HASH_STR + AVAIL_ALG + AVAIL_RANDOM_STR
+    all_algorithms = AVAIL_HASH_STR + AVAIL_ALG + AVAIL_SIGN_ALG + AVAIL_RANDOM_STR
 
     results = []
     for algorithm in all_algorithms:
@@ -82,11 +92,13 @@ def benchmark_all(length, rsa_keysize):
             results.append("========== HASH ALGORITHMS ==========")
         if algorithm in AVAIL_ALG and AVAIL_ALG.index(algorithm) == 0:
             results.append("\n========== CRYPTO ALGORITHMS ==========")
+        if algorithm in AVAIL_SIGN_ALG and AVAIL_SIGN_ALG.index(algorithm) == 0:
+            results.append("\n========== SIGNING ALGORITHMS ==========")
         if algorithm in AVAIL_RANDOM_STR and AVAIL_RANDOM_STR.index(
                 algorithm) == 0:
             results.append("\n========== RANDOM ALGORITHMS ==========")
         result = benchmark(algorithm, length, rsa_keysize)
-        if algorithm in AVAIL_ALG:
+        if algorithm in AVAIL_ALG or algorithm in AVAIL_SIGN_ALG:
             results.append(result[0][0])
             results.append(result[0][1])
             results.append(result[1])
@@ -206,6 +218,47 @@ def _benchmark_keygen(algorithm, rsa_keysize):
         raise algorithm_not_supported()
     consumed = perf_counter_ns() - start
     return label, _format_time(consumed)
+
+
+def _benchmark_sign(algorithm, data, rsa_keysize):
+    if algorithm == "RSA-PSS":
+        private_key = _rsa.generate(rsa_keysize)
+        public_key = private_key.public_key()
+        config = CryptoConfig()
+        config.hash_func = SHA256
+
+        start_sign = perf_counter_ns()
+        signature = primitives.rsa_sign(config, private_key, data)
+        sign_consumed = perf_counter_ns() - start_sign
+
+        start_verify = perf_counter_ns()
+        verified = primitives.rsa_verify(config, public_key, data, signature)
+        verify_consumed = perf_counter_ns() - start_verify
+    else:
+        public_key, private_key = mldsa_genkey(algorithm, "PEM")
+
+        start_sign = perf_counter_ns()
+        signature = mldsa_sign(private_key, data)
+        sign_consumed = perf_counter_ns() - start_sign
+
+        start_verify = perf_counter_ns()
+        verified = mldsa_verify(public_key, data, signature)
+        verify_consumed = perf_counter_ns() - start_verify
+
+    return (
+        (f'{algorithm}-sign', _format_time(sign_consumed)),
+        (f'{algorithm}-verify', _format_time(verify_consumed) if verified else 'failed')
+    )
+
+
+def _benchmark_sign_keygen(algorithm, rsa_keysize):
+    start = perf_counter_ns()
+    if algorithm == "RSA-PSS":
+        primitives.genrsa(rsa_keysize, 65537, None)
+    else:
+        mldsa_genkey(algorithm, "PEM")
+    consumed = perf_counter_ns() - start
+    return f"{algorithm}-keygen", _format_time(consumed)
 
 
 def _format_time(ns):

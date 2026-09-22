@@ -13,9 +13,13 @@ import tempfile
 from pathlib import Path
 
 from colorama import Fore, Style, init
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
 
 from ghostbytes.crypto.config import AVAIL_HASH_STR, CryptoConfig
 from ghostbytes.crypto import crypto as crypto_backend
+from ghostbytes.crypto import dilithium
+from ghostbytes.crypto import primitives
 from ghostbytes.gui import wrappers as cli
 
 
@@ -131,6 +135,27 @@ def _test_rsa(_):
     _check(cli.rsa_key_bits(private_key, "secret")
            == 1024, "RSA key info fail")
 
+    signing_config = _config("aes", "sha256")
+    signing_config.hash_func = SHA256
+    rsa_signature = primitives.rsa_sign(
+        signing_config,
+        RSA.import_key(private_key, "secret"),
+        plaintext)
+    _check(
+        primitives.rsa_verify(
+            signing_config,
+            RSA.import_key(public_key),
+            plaintext,
+            rsa_signature),
+        "RSA signing fail")
+    _check(
+        not primitives.rsa_verify(
+            signing_config,
+            RSA.import_key(public_key),
+            b"modified",
+            rsa_signature),
+        "RSA signature verification fail")
+
     for algorithm in ("rsa-oaep", "extended_oaep"):
         _step(f"{algorithm} encrypt/decrypt")
         config = _config(algorithm, "sha256")
@@ -165,6 +190,42 @@ def _test_mlkem(_):
                 ciphertext,
                 "secret") == plaintext,
             "ML-KEM encrypt/decrypt fail")
+
+def _test_mldsa(_):
+    message = b"ML-DSA integration test"
+    for algorithm in ("ML-DSA-44", "ML-DSA-65", "ML-DSA-87"):
+        _step(f"{algorithm} generate, verify, sign, and verify signature")
+        public_key, private_key = dilithium.genkey(
+            algorithm, "PEM", b"secret")
+        _check(dilithium.verify_key(public_key, private_key, b"secret"),
+               "ML-DSA keygen fail")
+        signature = dilithium.sign(private_key, message, b"secret")
+        _check(dilithium.verify(public_key, message, signature),
+               "ML-DSA signing fail")
+        _check(not dilithium.verify(public_key, b"modified", signature),
+               "ML-DSA signature verification fail")
+
+    public_key, private_key = cli.generate_mldsa_keypair(
+        "ML-DSA-65", "PEM", "secret")
+    signature = cli.sign_message("ML-DSA", private_key, message, "secret")
+    _check(
+        cli.verify_signature("ML-DSA", public_key, message, signature),
+        "ML-DSA family dispatch fail")
+
+    rsa_public, rsa_private = cli.generate_rsa_keypair(1024, 65537, "secret")
+    try:
+        cli.sign_message("ML-DSA", rsa_private, message, "secret")
+    except Exception:
+        pass
+    else:
+        raise AssertionError("ML-DSA accepted an RSA key")
+    try:
+        cli.sign_message("RSA", private_key, message, "secret")
+    except Exception:
+        pass
+    else:
+        raise AssertionError("RSA accepted an ML-DSA key")
+    _check(rsa_public and rsa_private, "RSA setup for family dispatch fail")
 
 
 def _test_files_hashes_and_batches(root):
@@ -251,6 +312,10 @@ def _test_random_password_benchmark_and_delete(root):
     benchmark_result = cli.run_benchmark("sha256", 32, 1024)
     _output("benchmark result", benchmark_result)
     _check(benchmark_result[0] == "sha256", "SHA-256 benchmark fail")
+    signing_result = cli.run_benchmark("ML-DSA-65", 32, 2048)
+    _check(
+        signing_result[0][1][1] != "failed",
+        "ML-DSA benchmark fail")
     partitions = cli.list_partitions()
     _output("partitions", partitions)
     _check(partitions, "partition listing fail")
@@ -287,6 +352,8 @@ def test_cli(verbose=False):
          _test_rsa),
         ("ML-KEM-768 and ML-KEM-1024 key management and encryption",
          _test_mlkem),
+        ("ML-DSA-44, ML-DSA-65, and ML-DSA-87 signatures",
+         _test_mldsa),
         ("SHA-256 and available hash algorithms, checksums, and AES batches",
          _test_files_hashes_and_batches),
         ("random sources, password generation, SHA-256 benchmark, and secure delete",

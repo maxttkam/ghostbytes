@@ -32,6 +32,7 @@ TABS = {
         ("key", "Key Information"),
     ],
     "CRYPTO TOOLS": [
+        ("file-signature", "Sign / Verify"),
         ("hashtag", "Hash File(s) (Checksum)"),
         ("dice", "Random"),
         ("dice", "Password Generator"),
@@ -47,7 +48,7 @@ TABS = {
 ACTIONS = [
     ("lock", "Encrypt File", "Secure a single file with strong encryption", "Encrypt / Decrypt"),
     ("lock-open", "Decrypt File", "Restore a file from its encrypted state", "Encrypt / Decrypt"),
-    ("key", "Generate Key Pair", "Create an RSA or ML-KEM key pair", "Generate Key Pair"),
+    ("key", "Generate Key Pair", "Create an RSA, ML-KEM, or ML-DSA key pair", "Generate Key Pair"),
     ("circle-check", "Verify Key Pair", "Check if a key pair is matching", "Verify Key Pair"),
     ("hashtag", "Hash File", "Calculate a file's cryptographic hash", "Hash File(s) (Checksum)"),
     ("trash", "Secure Delete", "Permanently remove files, no traces left", "Secure Delete"),
