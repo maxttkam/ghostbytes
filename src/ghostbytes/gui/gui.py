@@ -810,7 +810,10 @@ class App(ctk.CTk):
         def refresh(*_):
             aes_selected = key_type_var.get().startswith("AES")
             mlkem_selected = key_type_var.get().startswith("ML-KEM")
-            kdf_visible = aes_selected or mlkem_selected
+            rsa_hybrid_selected = (
+                key_type_var.get().startswith("RSA")
+                and rsa_mode_var.get().startswith("Hybrid"))
+            kdf_visible = aes_selected or mlkem_selected or rsa_hybrid_selected
             for widget in adv_fields.get("kdf_widgets", []):
                 if kdf_visible:
                     widget.grid()

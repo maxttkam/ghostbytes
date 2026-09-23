@@ -1,15 +1,16 @@
 """
 oaep_extension.py
 
-This module extends RSA-OAEP by generating a random AES-256 key for each message.
-The plaintext is encrypted with AES, while the AES key is encrypted with RSA-OAEP.
+This module extends RSA-OAEP by generating a random key seed for each message.
+The seed is derived into an AES-256 key with Argon2id. The plaintext is encrypted
+with AES, while the derived AES key is encrypted with RSA-OAEP.
 
 The resulting envelope contains the AES ciphertext and the RSA-encrypted AES key.
 The RSA-encrypted key is stored with the AES ciphertext.
 """
 
 from Crypto.Cipher import PKCS1_OAEP as _oaep
-from ghostbytes.crypto.primitives import aes_encrypt, aes_decrypt
+from ghostbytes.crypto.primitives import aes_encrypt, aes_decrypt, derive_key
 from ghostbytes.crypto.config import AVAIL_HASH, CryptoConfig
 from ghostbytes.tools.rand import random
 from ghostbytes.error import decryption_key_incorrect, envelope_too_small, \
@@ -52,7 +53,9 @@ def oaep_extended_encrypt(config, rsa, plaintext):
     if not oaep.can_encrypt():
         raise keyfile_cannot_crypt("encrypt")
 
-    key = random(config.rand_func, 32)  # AES-256 32 bytes key length
+    key = random(config.rand_func, 32)
+
+    key = derive_key(config, key)
 
     ciphertext = aes_encrypt(config, key, plaintext)
 

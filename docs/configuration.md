@@ -31,4 +31,6 @@ The following table documents every module-level constant and the `CryptoConfig`
 
 The encryptor and decryptor must use matching values for the relevant configuration fields, especially `algorithm`, `store_iv`, `mac_len`, the KDF settings, and `kdf_salt`.
 
+In the GUI, a KDF salt beginning with `base64:` is decoded as Base64 before it is used. This allows arbitrary binary salts to be entered, for example `base64:c2FsdA==`. Invalid Base64 input is rejected. Exported configuration files continue to store the salt as ordinary Base64 without the `base64:` prefix.
+
 The `ML-DSA` signature algorithm does not use `CryptoConfig`, while the RSA signature algorithm uses only the `hash_func` field in `CryptoConfig`
