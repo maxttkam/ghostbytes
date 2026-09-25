@@ -45,6 +45,8 @@ from ghostbytes.gui.theme import (
     ICON_PNG,
     MONO_FONT,
     SIDEBAR_LABELS,
+    SELECTION_BG,
+    SELECTION_FG,
     SUCCESS,
     TABS,
     THEME,
@@ -65,7 +67,11 @@ class App(ctk.CTk):
         super().__init__()
 
         self.title("Ghostbytes - An file encryption utility")
-        self._set_appearance_mode("system")
+        self._set_appearance_mode("dark")
+        self.option_add("*Entry.selectBackground", SELECTION_BG)
+        self.option_add("*Entry.selectForeground", SELECTION_FG)
+        self.option_add("*Text.selectBackground", SELECTION_BG)
+        self.option_add("*Text.selectForeground", SELECTION_FG)
         try:
             if os.name == "nt":
                 self.iconbitmap(default=str(ICON_ICO))
