@@ -2123,7 +2123,10 @@ class App(ctk.CTk):
                                 results_box, bar, status, alg, result, ok, i + 1, len(algorithms)
                             )
                         )
-                    self.after(0, lambda: btn.configure(state="normal"))
+                    self.after(
+                        0,
+                        lambda: btn.configure(state="normal")
+                        if btn.winfo_exists() else None)
 
                 threading.Thread(target=target, daemon=True).start()
 
@@ -2132,6 +2135,8 @@ class App(ctk.CTk):
         btn.configure(command=do_run)
 
     def _benchmark_row(self, box, bar, status, alg, result, ok, done, total):
+        if not all(widget.winfo_exists() for widget in (box, bar, status)):
+            return
         box.configure(state="normal")
 
         # Section banners — printed once, right before the first algorithm

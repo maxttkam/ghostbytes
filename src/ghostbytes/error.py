@@ -1,9 +1,5 @@
 """Exception types and error factories used throughout Ghostbytes."""
 
-# Error factories intentionally use compact one-line definitions and retain
-# the public lambda-based API for compatibility.
-# pylint: disable=missing-function-docstring,multiple-statements,unnecessary-lambda-assignment
-
 from datetime import datetime
 
 INTERNAL_ERROR = "INTERNAL_ERROR"
